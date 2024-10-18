@@ -1,4 +1,5 @@
 
+import { AguaEntity } from 'src/agua/entities/agua.entity';
 import { ClaseIEntity } from 'src/clase_i/entities/clase_i.entity';
 import { ClaseVEntity } from 'src/clase_v/entities/clase_v.entity';
 import { BaseEntity } from 'src/common/base.entity';
@@ -35,6 +36,9 @@ export class VehiculoEntity extends BaseEntity {
 
     @OneToMany(() => ClaseIEntity, (claseI) => claseI.vehiculo)
     clasesI: ClaseIEntity[];
+
+    @OneToMany(() => AguaEntity, (agua) => agua.vehiculo)
+    aguas: AguaEntity[];
 
     @OneToMany(() => RelationClaseIiiVehiculoEntity, (relation) => relation.vehiculo)
     claseIiiVehiculos: RelationClaseIiiVehiculoEntity[];

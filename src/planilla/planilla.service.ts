@@ -70,8 +70,10 @@ export class PlanillaService {
   findAll() {
     return this.planillaRepository.find({
       relations: [
-        'agua',          // Si deseas traer los datos relacionados de agua
-        'claseI',        // Si deseas traer los datos relacionados de clase I
+        'agua', 
+        'agua.vehiculo',          // Si deseas traer los datos relacionados de agua
+        'claseI',
+        'claseI.vehiculo',        // Si deseas traer los datos relacionados de clase I
         'claseIii', 
         'claseIii.claseIiiVehiculos',
         'claseIii.claseIiiVehiculos.vehiculo',     // Si deseas traer los datos relacionados de clase III

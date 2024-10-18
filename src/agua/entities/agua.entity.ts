@@ -1,5 +1,6 @@
 import { BaseEntity } from "src/common/base.entity";
 import { PlanillaEntity } from "src/planilla/entities/planilla.entity";
+import { VehiculoEntity } from "src/vehiculo/entities/vehiculo.entity";
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne } from "typeorm";
 @Entity('agua')
 export class AguaEntity extends BaseEntity {
@@ -20,5 +21,13 @@ export class AguaEntity extends BaseEntity {
     nullable: true,
   })
   planilla: PlanillaEntity;
+
+  @Column({ name: 'cant_vehiculos', nullable: true  })
+  cantVehiculos: number;
+  
+  @ManyToOne(() => VehiculoEntity, (vehiculo) => vehiculo.aguas, {
+    nullable: true,
+  })
+  vehiculo: VehiculoEntity;
 
 }

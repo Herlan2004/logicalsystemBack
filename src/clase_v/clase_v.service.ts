@@ -47,7 +47,9 @@ export class ClaseVService {
     // Guardar la Clase III
 
     // Asociar los vehículos a la clase III
+    let cantVehiculos=0
     if (armas && armas.length > 0) {
+      
       for (let arma of armas) {
 
         if (arma) {
@@ -59,13 +61,26 @@ export class ClaseVService {
             situacionCombate: { id: newClaseV.situacionCombate.id } },
           });
           console.log("situacion", RelationArmaSituacionCombate)
+          let municionNecesaria
           if(cantDias == 1){
-            relation.cantMunicionNecesaria = Math.ceil((RelationArmaSituacionCombate.primerDia*arma.cantidad)+(RelationArmaSituacionCombate.primerDia*arma.cantidad)*0.1)
+            municionNecesaria=Math.ceil((RelationArmaSituacionCombate.primerDia*arma.cantidad)+(RelationArmaSituacionCombate.primerDia*arma.cantidad)*0.1)
+            relation.cantMunicionNecesaria = municionNecesaria 
           }
           else{
-            relation.cantMunicionNecesaria = Math.ceil(((RelationArmaSituacionCombate.primerDia+RelationArmaSituacionCombate.diasSiguientes*(cantDias-1))*arma.cantidad)+ ((RelationArmaSituacionCombate.primerDia+RelationArmaSituacionCombate.diasSiguientes*(cantDias-1))*arma.cantidad)*0.1)
+            municionNecesaria=Math.ceil(((RelationArmaSituacionCombate.primerDia+RelationArmaSituacionCombate.diasSiguientes*(cantDias-1))*arma.cantidad)+ ((RelationArmaSituacionCombate.primerDia+RelationArmaSituacionCombate.diasSiguientes*(cantDias-1))*arma.cantidad)*0.1)
+            relation.cantMunicionNecesaria =  municionNecesaria
           }
-          console.log("relacion",relation)
+          if(claseVData.vehiculo){
+            let numeroCajas=Math.ceil(municionNecesaria/claseVData.cantMunicionPorCaja)
+            console.log(numeroCajas)
+            let pesoMunicion=Math.ceil(numeroCajas*claseVData.pesoCaja)
+            console.log(pesoMunicion)
+            relation.pesoCaja=claseVData.pesoCaja
+            relation.cantMunicionPorCaja=claseVData.cantMunicionPorCaja
+            relation.pesoMunicion=Math.ceil(numeroCajas*claseVData.pesoCaja)
+            cantVehiculos=cantVehiculos+(pesoMunicion/(claseVData.vehiculo.capacidad*1000))
+          }
+          console.log("CANTvEHICULOS",cantVehiculos)
           
           relation.claseV=claseVCreated;
           relation.arma = arma;
@@ -74,6 +89,10 @@ export class ClaseVService {
         }
       }
     }
+    claseVCreated.cantVehiculos = Math.ceil(cantVehiculos);
+
+  // Guardar nuevamente la entidad Clase V con el valor actualizado de cantVehiculos
+    await this.claseVRepository.save(claseVCreated);
     return claseVCreated
   }
 
