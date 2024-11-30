@@ -1,8 +1,9 @@
 {
   "name": "logicalsystem-backend",
-  "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "version": "1.0.0",
+  "description": "Backend de Logical System",
+  "main": "dist/main.js",
+  "author": "yo",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
@@ -24,6 +25,7 @@
     "migration:run": "npm run typeorm -- migration:run",
     "migration:revert": "npm run typeorm -- migration:revert"
   },
+  "bin": "./dist/main.js",
   "dependencies": {
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",

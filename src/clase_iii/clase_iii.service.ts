@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateClaseIiiDto } from './dto/create-clase_iii.dto';
 import { UpdateClaseIiiDto } from './dto/update-clase_iii.dto';
 import { RelationClaseIiiVehiculoEntity } from 'src/common/entities/relation_clase_iii_vehiculo.entity';
@@ -64,8 +64,41 @@ export class ClaseIiiService {
     return `This action returns a #${id} claseIii`;
   }
 
-  update(id: number, updateClaseIiiDto: UpdateClaseIiiDto) {
-    return `This action updates a #${id} claseIii`;
+  async update(id: number, updateClaseIiiDto: any) {
+
+    console.log("claseiii", updateClaseIiiDto)
+    const existingClaseIii = await this.claseIiiRepository.findOne({
+      where: { id }, // Si Clase III tiene vehículos relacionados
+    });
+  
+    if (!existingClaseIii) {
+      throw new NotFoundException(`Clase III entity with ID ${id} not found`);
+    }
+  
+    // Actualizar los datos de la entidad
+    Object.assign(existingClaseIii, updateClaseIiiDto);
+  
+    // Si hay vehículos, actualizarlos
+    const { vehiculos } = updateClaseIiiDto;
+    console.log("claseiii", updateClaseIiiDto)
+    console.log('vehiculos', vehiculos)
+    console.log(existingClaseIii)
+    if (vehiculos && vehiculos.length > 0) {
+      // Eliminar relaciones existentes
+      await this.relationClaseIiiVehiculoRepository.delete({ claseIii: { id } });
+  
+      // Crear nuevas relaciones con los vehículos
+      for (const vehiculo of vehiculos) {
+        const relation = new RelationClaseIiiVehiculoEntity();
+        relation.cantVehiculos = vehiculo.cantidad;
+        relation.claseIii = existingClaseIii;
+        relation.vehiculo = vehiculo;
+        await this.relationClaseIiiVehiculoRepository.save(relation);
+      }
+    }
+  
+    // Guardar los cambios en la entidad Clase III
+    return await this.claseIiiRepository.save(existingClaseIii);
   }
 
   remove(id: number) {

@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateClaseIDto } from './dto/create-clase_i.dto';
 import { UpdateClaseIDto } from './dto/update-clase_i.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -37,8 +37,17 @@ export class ClaseIService {
     return `This action returns a #${id} claseI`;
   }
 
-  update(id: number, updateClaseIDto: UpdateClaseIDto) {
-    return `This action updates a #${id} claseI`;
+  async update(id: number, updateClaseIDto: any) {
+    const existingClaseI = await this.claseIRepository.findOne({ where: { id } });
+    if (!existingClaseI) {
+      throw new NotFoundException(`Clase I entity with ID ${id} not found`);
+    }
+  
+    // Actualizar los datos de la entidad
+    Object.assign(existingClaseI, updateClaseIDto);
+  
+    // Guardar los cambios
+    return await this.claseIRepository.save(existingClaseI);
   }
 
   remove(id: number) {

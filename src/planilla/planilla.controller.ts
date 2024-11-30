@@ -23,12 +23,12 @@ export class PlanillaController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePlanillaDto: any) {
-    return this.planillaService.update(+id, updatePlanillaDto);
+  update(@Param('id') id: number, @Body() updatePlanillaDto: any) {
+    return this.planillaService.update(id, updatePlanillaDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.planillaService.remove(+id);
+  remove(@Param('id') id: number) {
+    return this.planillaService.remove(id);
   }
 }

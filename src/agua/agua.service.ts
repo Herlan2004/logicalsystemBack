@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateAguaDto } from './dto/create-agua.dto';
 import { UpdateAguaDto } from './dto/update-agua.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -41,8 +41,17 @@ export class AguaService {
     return `This action returns a #${id} agua`;
   }
 
-  update(id: number, updateAguaDto: UpdateAguaDto) {
-    return `This action updates a #${id} agua`;
+  async update(id: number, updateAguaDto: any) {
+    const existingAgua = await this.aguaRepository.findOne({ where: { id } });
+    if (!existingAgua) {
+      throw new NotFoundException(`Agua entity with ID ${id} not found`);
+    }
+  
+    // Actualizar los datos de la entidad
+    Object.assign(existingAgua, updateAguaDto);
+  
+    // Guardar los cambios
+    return await this.aguaRepository.save(existingAgua);
   }
 
   remove(id: number) {

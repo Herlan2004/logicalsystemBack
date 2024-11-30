@@ -1,4 +1,4 @@
-import { forwardRef, HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, HttpException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePlanillaDto } from './dto/create-planilla.dto';
 import { UpdatePlanillaDto } from './dto/update-planilla.dto';
 import { ClaseIService } from 'src/clase_i/clase_i.service';
@@ -77,10 +77,11 @@ export class PlanillaService {
         'claseIii', 
         'claseIii.claseIiiVehiculos',
         'claseIii.claseIiiVehiculos.vehiculo',     // Si deseas traer los datos relacionados de clase III
-        'claseV',        // Incluye la clase V relacionada
+        'claseV',
+        'claseV.situacionCombate',        // Incluye la clase V relacionada
         'claseV.claseVArmas',  // Incluye la relación claseVArmas dentro de claseV
         'claseV.claseVArmas.arma' // Si también deseas incluir los detalles de arma relacionados
-      ],
+      ], order: {createdAt:'DESC'},
     });
   }
 
@@ -88,8 +89,10 @@ export class PlanillaService {
     const planillaFound = await this.planillaRepository.findOne({
       where: { id: planillaId },
       relations: [
-        'agua',            // Relación con AguaEntity
-        'claseI',          // Relación con ClaseIEntity
+        'agua', 
+        'agua.vehiculo',          // Si deseas traer los datos relacionados de agua
+        'claseI',
+        'claseI.vehiculo',         // Relación con ClaseIEntity
         'claseIii', 
         'claseIii.claseIiiVehiculos',
         'claseIii.claseIiiVehiculos.vehiculo', // Relación con ClaseIiiEntity
@@ -100,7 +103,7 @@ export class PlanillaService {
         'claseV.claseVArmas.arma',             // Relación con ArmaEntity dentro de RelationClaseVArmaEntity
         'claseV.situacionCombate.armaSituacionCombate', // Relación con RelationArmaSituacionCombateEntity
         'claseV.situacionCombate.armaSituacionCombate.arma' // Relación con ArmaEntity en RelationArmaSituacionCombateEntity
-      ],
+      ]
     });
     if(planillaFound.claseV){
       const armasPlanilla = planillaFound.claseV.claseVArmas.map(armaRelation => armaRelation.arma.id);
@@ -125,11 +128,88 @@ export class PlanillaService {
     return planillaFound;
   }
 
-  update(id: number, updatePlanillaDto: UpdatePlanillaDto) {
-    return `This action updates a #${id} planilla`;
+  async update(id: number, updatePlanillaDto: any) {
+    const existingPlanilla = await this.planillaRepository.findOne({
+      where: { id },
+      relations: ['agua', 'claseI', 'claseIii', 'claseV'],
+    });
+    if (!existingPlanilla) {
+      throw new NotFoundException(`Planilla with ID ${id} not found`);
+    }
+  
+    // Extraer los datos del DTO
+    const { agua, claseI, claseIii, claseV } = updatePlanillaDto;
+  
+    // Actualizar o eliminar la relación de Agua
+    if (agua) {
+      if (existingPlanilla.agua) {
+        await this.aguaService.update(existingPlanilla.agua.id, agua);
+      } else {
+        const aguaCreated = await this.aguaService.create(agua);
+        existingPlanilla.agua = aguaCreated;
+      }
+    } else if (existingPlanilla.agua) {
+      // Si no se proporciona 'agua' en el DTO, eliminar la relación
+      existingPlanilla.agua = null;
+    }
+  
+    // Actualizar o eliminar la relación de Clase I
+    if (claseI) {
+      if (existingPlanilla.claseI) {
+        await this.claseIService.update(existingPlanilla.claseI.id, claseI);
+      } else {
+        const claseICreated = await this.claseIService.create(claseI);
+        existingPlanilla.claseI = claseICreated;
+      }
+    } else if (existingPlanilla.claseI) {
+      // Si no se proporciona 'claseI' en el DTO, eliminar la relación
+      existingPlanilla.claseI = null;
+    }
+  
+    // Actualizar o eliminar la relación de Clase III
+    if (claseIii) {
+      if (existingPlanilla.claseIii) {
+        await this.claseIiiService.update(existingPlanilla.claseIii.id, claseIii);
+      } else {
+        const claseIiiCreated = await this.claseIiiService.create(claseIii);
+        existingPlanilla.claseIii = claseIiiCreated;
+      }
+    } else if (existingPlanilla.claseIii) {
+      // Si no se proporciona 'claseIii' en el DTO, eliminar la relación
+      existingPlanilla.claseIii = null;
+    }
+  
+    // Actualizar o eliminar la relación de Clase V
+    if (claseV) {
+      if (existingPlanilla.claseV) {
+        await this.claseVService.update(existingPlanilla.claseV.id, claseV);
+      } else {
+        const claseVCreated = await this.claseVService.create(claseV);
+        existingPlanilla.claseV = claseVCreated;
+      }
+    } else if (existingPlanilla.claseV) {
+      // Si no se proporciona 'claseV' en el DTO, eliminar la relación
+      existingPlanilla.claseV = null;
+    }
+  
+    // Guardar la planilla actualizada en la base de datos
+    await this.planillaRepository.save(existingPlanilla);
+  
+    return existingPlanilla;
   }
+  
 
-  remove(id: number) {
-    return `This action removes a #${id} planilla`;
+  async remove(id: number): Promise<void> {
+    // Buscar la entidad Planilla por su id
+    const planilla = await this.planillaRepository.findOne({ where: { id } });
+    
+    // Verificar si existe la entidad
+    if (!planilla) {
+      throw new NotFoundException(`Planilla with ID ${id} not found`);
+    }
+  
+    // Eliminar la entidad Planilla
+    await this.planillaRepository.remove(planilla);
   }
+  
 }

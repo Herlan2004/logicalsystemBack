@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateClaseVDto } from './dto/create-clase_v.dto';
 import { UpdateClaseVDto } from './dto/update-clase_v.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -104,9 +104,67 @@ export class ClaseVService {
     return `This action returns a #${id} claseV`;
   }
 
-  update(id: number, updateClaseVDto: UpdateClaseVDto) {
-    return `This action updates a #${id} claseV`;
+  async update(id: number, updateClaseVDto: any) {
+    const existingClaseV = await this.claseVRepository.findOne({
+      where: { id },
+    });
+  
+    if (!existingClaseV) {
+      throw new NotFoundException(`Clase V entity with ID ${id} not found`);
+    }
+  
+    // Actualizar los datos de la entidad
+    Object.assign(existingClaseV, updateClaseVDto);
+  
+    // Actualizar las relaciones con armas
+    const { armas } = updateClaseVDto;
+    if (armas && armas.length > 0) {
+      // Eliminar relaciones existentes
+      await this.relationClaseVArmaRepository.delete({ claseV: { id } });
+  
+      // Crear nuevas relaciones con las armas
+      for (const arma of armas) {
+        const relation = new RelationClaseVArmaEntity();
+        relation.cantArmamento = arma.cantidad;
+  
+        // Calcular munición necesaria
+        const RelationArmaSituacionCombate = await this.relationArmaSituacionCombateRepository.findOne({
+          where: { arma: { id: arma.id }, situacionCombate: { id: existingClaseV.situacionCombate.id } },
+        });
+  
+        let municionNecesaria;
+        if (existingClaseV.cantDias === 1) {
+          municionNecesaria = Math.ceil((RelationArmaSituacionCombate.primerDia * arma.cantidad) + (RelationArmaSituacionCombate.primerDia * arma.cantidad) * 0.1);
+        } else {
+          municionNecesaria = Math.ceil(((RelationArmaSituacionCombate.primerDia + RelationArmaSituacionCombate.diasSiguientes * (existingClaseV.cantDias - 1)) * arma.cantidad) + ((RelationArmaSituacionCombate.primerDia + RelationArmaSituacionCombate.diasSiguientes * (existingClaseV.cantDias - 1)) * arma.cantidad) * 0.1);
+        }
+  
+        relation.cantMunicionNecesaria = municionNecesaria;
+  
+        // Manejo de vehículos
+        if (updateClaseVDto.vehiculo) {
+          const numeroCajas = Math.ceil(municionNecesaria / updateClaseVDto.cantMunicionPorCaja);
+          const pesoMunicion = Math.ceil(numeroCajas * updateClaseVDto.pesoCaja);
+          relation.pesoCaja = updateClaseVDto.pesoCaja;
+          relation.cantMunicionPorCaja = updateClaseVDto.cantMunicionPorCaja;
+          relation.pesoMunicion = pesoMunicion;
+  
+          // Calcular la cantidad de vehículos necesaria
+          const capacidadVehiculo = updateClaseVDto.vehiculo.capacidad * 1000; // capacidad en kilogramos
+          const cantVehiculos = Math.ceil(pesoMunicion / capacidadVehiculo);
+          existingClaseV.cantVehiculos = cantVehiculos;
+        }
+  
+        relation.claseV = existingClaseV;
+        relation.arma = arma;
+        await this.relationClaseVArmaRepository.save(relation);
+      }
+    }
+  
+    // Guardar los cambios en la entidad Clase V
+    return await this.claseVRepository.save(existingClaseV);
   }
+  
 
   remove(id: number) {
     return `This action removes a #${id} claseV`;
